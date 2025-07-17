@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI README Generator</title>
+    
+    <!-- Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter (for UI) and Fira Code (for Monospace/Code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* GitHub Dark Theme Inspired Customizations */
+        :root {
+            --bg-default: #0d1117;
+            --bg-inset: #010409;
+            --border-default: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-fg: #58a6ff;
+            --success-fg: #2ea043;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-default);
+            color: var(--text-primary);
+            overflow: hidden; /* Hide scrollbars from the body itself */
+        }
+        /* Particles.js container */
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .font-mono {
+            font-family: 'Fira Code', SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+        }
+        /* Custom scrollbar for a more integrated look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-default);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-default);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+        }
+        /* Style for the generated markdown output */
+        #readme-output {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        /* Fade-in animation for results */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        /* Typewriter effect */
+        .typewriter-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1.2em;
+            background-color: var(--accent-fg);
+            animation: blink 1s step-end infinite;
+            vertical-align: bottom;
+        }
+        @keyframes blink {
+            from, to { background-color: transparent }
+            50% { background-color: var(--accent-fg); }
+        }
+        /* Modal styles */
+        #feedback-modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="particles-js"></div>
+
+    <main class="w-full max-w-4xl mx-auto space-y-8 z-10">
+        <!-- Header Section -->
+        <div class="text-center space-y-3">
+            <h1 class="text-4xl md:text-5xl font-bold text-white" style="text-shadow: 0 0 10px var(--accent-fg);">DocuMind AI</h1>
+            <p class="text-lg text-[var(--text-secondary)]">A self-improving documentation assistant.</p>
+        </div>
+
+        <!-- Input Form -->
+        <form id="repo-form" class="relative">
+            <div class="flex items-center bg-[#161b22] border border-[var(--border-default)] rounded-lg shadow-lg focus-within:ring-2 focus-within:ring-[var(--accent-fg)] transition-all duration-200">
+                <svg class="h-6 w-6 text-[var(--text-secondary)] ml-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <input type="url" id="repo-url" placeholder="https://github.com/owner/repository-name" required class="w-full p-4 bg-transparent text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none">
+                <button type="submit" id="generate-btn" class="bg-[var(--success-fg)] text-white font-semibold py-2 px-6 rounded-md m-2 hover:bg-[#238636] focus:outline-none focus:ring-2 focus:ring-[#2ea043] focus:ring-opacity-50 transition-colors disabled:bg-[#57606a] disabled:cursor-not-allowed">
+                    Generate
+                </button>
+            </div>
+        </form>
+
+        <!-- Status/Error Display -->
+        <div id="status-container" class="text-center min-h-[120px] flex items-center justify-center">
+            <div id="loader" class="hidden flex-col items-center justify-center space-y-4 p-8">
+                 <svg class="animate-spin h-10 w-10 text-[var(--accent-fg)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <p id="loading-message" class="text-[var(--text-secondary)]">Fetching repository data...</p>
+            </div>
+            <div id="error-message" class="hidden p-4 bg-red-900/30 border border-red-700 text-red-300 rounded-lg"></div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="results-container" class="hidden bg-[#161b22] border border-[var(--border-default)] rounded-lg shadow-lg">
+            <div class="flex justify-between items-center p-4 border-b border-[var(--border-default)]">
+                <h2 class="text-lg font-semibold text-white">Generated README.md</h2>
+                <button id="copy-btn" class="bg-[#21262d] text-[var(--text-primary)] font-semibold py-2 px-4 rounded-md border border-[var(--border-default)] hover:bg-[#30363d] focus:outline-none focus:ring-2 focus:ring-[var(--accent-fg)] transition-colors flex items-center space-x-2">
+                    <span id="copy-text">Copy</span>
+                    <svg id="copy-icon" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    <svg id="check-icon" class="hidden h-5 w-5 text-[var(--success-fg)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </button>
+            </div>
+            <div class="p-6 h-96 overflow-y-auto">
+                <pre id="readme-output" class="font-mono text-sm text-[var(--text-primary)]"></pre>
+            </div>
+            <!-- [FIXED] Feedback Section -->
+            <div id="feedback-section" class="hidden p-4 border-t border-[var(--border-default)] text-center space-y-2">
+                <p class="text-sm text-[var(--text-secondary)]">Was this README helpful?</p>
+                <div class="flex justify-center space-x-4">
+                    <button id="good-btn" class="bg-green-500/20 text-green-300 px-4 py-2 rounded-lg hover:bg-green-500/40 transition-colors">👍 Looks Good</button>
+                    <button id="bad-btn" class="bg-red-500/20 text-red-300 px-4 py-2 rounded-lg hover:bg-red-500/40 transition-colors">👎 Needs Improvement</button>
+                </div>
+                <p id="feedback-thanks" class="hidden text-green-400 text-sm">Thanks! I'll use this as an example for next time.</p>
+            </div>
+        </div>
+
+        <footer class="text-center text-[var(--text-secondary)] text-sm pt-4">
+            <p>Designed & Built by You. Powered by AI.</p>
+        </footer>
+    </main>
+    
+    <!-- Feedback Modal -->
+    <div id="feedback-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div class="bg-[#161b22] border border-[var(--border-default)] rounded-lg shadow-xl p-6 w-full max-w-2xl space-y-4">
+            <h3 class="text-xl font-bold text-white">Improve this README</h3>
+            <p class="text-[var(--text-secondary)]">Please provide feedback or paste an improved version of the README below.</p>
+            <textarea id="feedback-input" class="w-full h-48 p-2 bg-[#0d1117] border border-[var(--border-default)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-fg)]"></textarea>
+            <div class="flex justify-end space-x-4">
+                <button id="cancel-feedback-btn" class="bg-gray-700/50 text-white px-4 py-2 rounded-lg hover:bg-gray-700/80">Cancel</button>
+                <button id="submit-feedback-btn" class="bg-[var(--accent-fg)] text-white px-4 py-2 rounded-lg hover:opacity-90">Re-generate with Feedback</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Particles.js -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+    <script>
+        // --- Particle.js Initialization ---
+        particlesJS('particles-js', { "particles": { "number": { "value": 60, "density": { "enable": true, "value_area": 800 } }, "color": { "value": "#58a6ff" }, "shape": { "type": "circle" }, "opacity": { "value": 0.3, "random": true }, "size": { "value": 3, "random": true }, "line_linked": { "enable": true, "distance": 150, "color": "#30363d", "opacity": 0.4, "width": 1 }, "move": { "enable": true, "speed": 1, "direction": "none", "out_mode": "out" } }, "interactivity": { "detect_on": "canvas", "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" } }, "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 1 } }, "push": { "particles_nb": 4 } } } });
+
+        // --- DOM Element References & State ---
+        const repoForm = document.getElementById('repo-form');
+        const repoUrlInput = document.getElementById('repo-url');
+        const generateBtn = document.getElementById('generate-btn');
+        const loader = document.getElementById('loader');
+        const loadingMessage = document.getElementById('loading-message');
+        const errorMessage = document.getElementById('error-message');
+        const resultsContainer = document.getElementById('results-container');
+        const readmeOutput = document.getElementById('readme-output');
+        const copyBtn = document.getElementById('copy-btn');
+        const copyText = document.getElementById('copy-text');
+        const copyIcon = document.getElementById('copy-icon');
+        const checkIcon = document.getElementById('check-icon');
+        const feedbackSection = document.getElementById('feedback-section');
+        const goodBtn = document.getElementById('good-btn');
+        const badBtn = document.getElementById('bad-btn');
+        const feedbackThanks = document.getElementById('feedback-thanks');
+        const feedbackModal = document.getElementById('feedback-modal');
+        const feedbackInput = document.getElementById('feedback-input');
+        const cancelFeedbackBtn = document.getElementById('cancel-feedback-btn');
+        const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
+
+        let typewriterInterval;
+        let readmeDataset = [];
+        let currentRepoData = null; // Store the data of the last generated repo
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', loadReadmeDataset);
+
+        /**
+         * Loads the readme_dataset.json file and session-specific examples.
+         */
+        async function loadReadmeDataset() {
+            try {
+                const response = await fetch('./readme_dataset.json');
+                if (!response.ok) {
+                    showError("Could not load readme_dataset.json. Make sure it's in the same folder as index.html and you are using a local server.");
+                    return;
+                }
+                const baseDataset = await response.json();
+                const sessionExamples = JSON.parse(sessionStorage.getItem('goodReadmeExamples')) || [];
+                readmeDataset = [...baseDataset, ...sessionExamples];
+                console.log(`Successfully loaded ${baseDataset.length} base examples and ${sessionExamples.length} session examples.`);
+            } catch (error) {
+                console.error("Error loading dataset:", error);
+                showError("Error loading readme_dataset.json. Check the console for details.");
+            }
+        }
+
+        // --- Event Listeners ---
+        repoForm.addEventListener('submit', handleFormSubmit);
+        copyBtn.addEventListener('click', copyToClipboard);
+        goodBtn.addEventListener('click', handleGoodFeedback);
+        badBtn.addEventListener('click', handleBadFeedback);
+        cancelFeedbackBtn.addEventListener('click', () => feedbackModal.classList.add('hidden'));
+        submitFeedbackBtn.addEventListener('click', handleFeedbackSubmit);
+
+        // --- Core Functions ---
+
+        /**
+         * Finds the best README examples from the dataset based on language.
+         */
+        function findBestExamples(targetLanguage) {
+            if (readmeDataset.length === 0) return [];
+            const examples = readmeDataset.filter(entry => entry.language === targetLanguage).sort((a, b) => b.stars - a.stars).slice(0, 2).map(entry => entry.readme_content);
+            console.log(`Found ${examples.length} examples for language: ${targetLanguage}`);
+            return examples;
+        }
+
+        /**
+         * Main function to handle the form submission.
+         */
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            const apiKey = "AIzaSyDCy_hnaWxmv1QNrCBSJplEXnGYWVuobus";
+            if (apiKey === "YOUR_API_KEY_HERE" || !apiKey) {
+                showError("API Key not set. Please add your key to the script.");
+                return;
+            }
+
+            const repoUrl = repoUrlInput.value.trim();
+            const repoParts = parseGitHubUrl(repoUrl);
+            if (!repoParts) {
+                showError("Please enter a valid GitHub repository URL.");
+                return;
+            }
+
+            resetUI();
+            setLoading(true, "Fetching repository data...");
+
+            try {
+                const { owner, repo } = repoParts;
+                currentRepoData = await fetchRepoData(owner, repo);
+                
+                setLoading(true, "Finding relevant examples...");
+                const examples = findBestExamples(currentRepoData.language);
+
+                setLoading(true, "AI is deeply analyzing the code...");
+                const generatedReadme = await generateReadmeWithAI({ repoData: currentRepoData, examples, apiKey });
+                
+                displayResult(generatedReadme);
+            } catch (error) {
+                console.error("An error occurred:", error);
+                showError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        /**
+         * Fetches comprehensive repository data.
+         */
+        async function fetchRepoData(owner, repo) {
+            const GITHUB_API_BASE = 'https://api.github.com/repos';
+            const [repoDetailsRes, contentsRes, languagesRes] = await Promise.all([
+                fetch(`${GITHUB_API_BASE}/${owner}/${repo}`),
+                fetch(`${GITHUB_API_BASE}/${owner}/${repo}/contents`),
+                fetch(`${GITHUB_API_BASE}/${owner}/${repo}/languages`)
+            ]);
+            if (!repoDetailsRes.ok) throw new Error(`Repo not found or private.`);
+            const repoDetails = await repoDetailsRes.json();
+            const contents = await contentsRes.json();
+            const languages = await languagesRes.json();
+            const codeAnalysisFiles = await fetchKeyFileContents(contents);
+            return {
+                name: repoDetails.name, description: repoDetails.description, url: repoDetails.html_url, stars: repoDetails.stargazers_count, language: repoDetails.language, license: repoDetails.license ? repoDetails.license.name : 'Not specified', code_analysis_files: codeAnalysisFiles
+            };
+        }
+
+        /**
+         * Identifies and fetches content for key files.
+         */
+        async function fetchKeyFileContents(contents) {
+            const highValueFiles = ['package.json', 'requirements.txt', 'pom.xml', 'src/index.js', 'src/main.js', 'app.py', 'main.py', 'server.js', 'index.html'];
+            const filesToFetch = contents.filter(file => file.type === 'file' && highValueFiles.includes(file.name)).slice(0, 4);
+            if (filesToFetch.length > 0) setLoading(true, `Analyzing ${filesToFetch.length} key files...`);
+            const fetchedFiles = await Promise.all(filesToFetch.map(async file => {
+                try {
+                    const fileRes = await fetch(file.download_url);
+                    return fileRes.ok ? { name: file.name, content: await fileRes.text() } : null;
+                } catch (e) { return null; }
+            }));
+            return fetchedFiles.filter(Boolean);
+        }
+
+        /**
+         * [FIXED] Sends data to the Gemini API with a much stricter and more detailed prompt.
+         */
+        async function generateReadmeWithAI({ repoData, examples, apiKey, feedback = null }) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            const strictTemplate = `
+# ${repoData.name}
+
+> [A concise and powerful one-liner describing the project. Use the repo description and analyze the code to create this.]
+
+[![License: ${repoData.license || 'N/A'}](https://img.shields.io/badge/License-${(repoData.license || 'N/A').replace(/ /g, '%20')}-yellow.svg)](${repoData.url})
+[![GitHub stars](https://img.shields.io/github/stars/${repoData.url.split('/').slice(-2).join('/')}?style=social)](${repoData.url})
+
+## Description
+
+[Write a detailed paragraph explaining what the project is, the problem it solves, and its core purpose. This MUST be based on your understanding of the provided source code, not just the description field.]
+
+## ✨ Key Features
+
+- **[Feature 1]:** [Infer a key feature from the code analysis. Be specific. e.g., "User authentication via JWT."]
+- **[Feature 2]:** [Infer another key feature from the code analysis.]
+- **[Feature 3]:** [Infer a third key feature from the code analysis.]
+
+## 🛠️ Technology Stack
+
+- **Frontend:** [List frontend technologies based on dependencies and file types.]
+- **Backend:** [List backend technologies based on dependencies and file types.]
+- **Database:** [List database technologies based on dependencies.]
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [List necessary software (e.g., Node.js v18+, Python 3.10+). Infer this from the files.]
+
+### Installation
+
+1.  Clone the repository:
+    \`\`\`sh
+    git clone ${repoData.url}
+    \`\`\`
+2.  Navigate to the project directory:
+    \`\`\`sh
+    cd ${repoData.name}
+    \`\`\`
+3.  Install dependencies:
+    \`\`\`sh
+    [Provide the EXACT command, e.g., npm install OR pip install -r requirements.txt, based on the key files.]
+    \`\`\`
+                
+### Running the Project
+\`\`\`sh
+[Provide the command to run the project, e.g., npm run dev, based on package.json scripts.]
+\`\`\`
+
+## 🤝 Contributing
+
+Contributions are welcome! Please check the [issues page](${repoData.url}/issues) for ways to contribute.
+
+## 📝 License
+
+This project is licensed under the **${repoData.license || 'Not specified'}**.
+`;
+
+            let prompt;
+            if (feedback) {
+                prompt = `The previous README generation was not good enough. You MUST improve it based on this user feedback: "${feedback}".
+                You MUST follow the provided template structure.
+                
+                TEMPLATE:
+                ${strictTemplate}
+
+                ORIGINAL DATA:
+                ${JSON.stringify(repoData, null, 2)}
+                
+                Output only the raw Markdown content.`;
+            } else {
+                const examplesString = examples.length > 0 ? `Here are some high-quality examples of READMEs for similar projects:\n\n` + examples.map((ex, i) => `--- EXAMPLE ${i + 1} ---\n${ex}`).join('\n\n') : "No relevant examples found.";
+                prompt = `You are an expert technical writer. Your task is to populate the provided Markdown template.
+                
+                **Step 1: Analyze the Data.**
+                Carefully review the provided JSON data, especially the 'description' and the code in 'code_analysis_files'.
+                
+                **Step 2: Infer the Details.**
+                From your analysis, determine the project's features, technology stack, and setup commands. For example, if you see 'particles.js' in the HTML, the technology stack includes Particles.js and a feature is 'Dynamic Animated Background'. Be specific.
+                
+                **Step 3: Populate the Template.**
+                You MUST fill in every section of the following template using the details you inferred. Do not skip any sections. Do not use generic placeholders like 'Unknown' or 'Not applicable'.
+                
+                ---
+                **TEMPLATE TO POPULATE:**
+                ---
+                ${strictTemplate}
+                ---
+
+                **JSON DATA TO USE:**
+                ---
+                ${JSON.stringify(repoData, null, 2)}
+                ---
+
+                Now, generate the complete, populated README.md file. Output only the raw markdown.`;
+            }
+
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            
+            if (!response.ok) {
+                if (response.status === 503) throw new Error("The AI model is currently overloaded. Please try again.");
+                const errorBody = await response.text();
+                throw new Error(`AI generation failed: ${errorBody}`);
+            }
+
+            const result = await response.json();
+            if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts[0].text) {
+                let text = result.candidates[0].content.parts[0].text;
+                if (text.startsWith('```markdown')) text = text.substring(10);
+                if (text.endsWith('```')) text = text.substring(0, text.length - 3);
+                return text.trim();
+            } else {
+                if (result.promptFeedback && result.promptFeedback.blockReason) throw new Error(`Request blocked: ${result.promptFeedback.blockReason}`);
+                throw new Error("The AI returned an empty or invalid response.");
+            }
+        }
+
+        // --- Feedback Handling ---
+        function handleGoodFeedback() {
+            const newExample = {
+                repo_name: currentRepoData.name,
+                language: currentRepoData.language,
+                stars: currentRepoData.stars,
+                readme_content: readmeOutput.textContent
+            };
+            
+            readmeDataset.push(newExample);
+            
+            const sessionExamples = JSON.parse(sessionStorage.getItem('goodReadmeExamples')) || [];
+            sessionExamples.push(newExample);
+            sessionStorage.setItem('goodReadmeExamples', JSON.stringify(sessionExamples));
+
+            feedbackThanks.classList.remove('hidden');
+            setTimeout(() => feedbackThanks.classList.add('hidden'), 3000);
+        }
+
+        function handleBadFeedback() {
+            feedbackInput.value = readmeOutput.textContent;
+            feedbackModal.classList.remove('hidden');
+        }
+
+        async function handleFeedbackSubmit() {
+            const feedback = feedbackInput.value;
+            if (!feedback.trim()) {
+                alert("Please provide some feedback or an improved version.");
+                return;
+            }
+
+            feedbackModal.classList.add('hidden');
+            setLoading(true, "Re-generating with your feedback...");
+            
+            try {
+                const apiKey = "AIzaSyDCy_hnaWxmv1QNrCBSJplEXnGYWVuobus";
+                const generatedReadme = await generateReadmeWithAI({
+                    repoData: currentRepoData,
+                    examples: [], // No need for examples when feedback is given
+                    apiKey: apiKey,
+                    feedback: feedback
+                });
+                displayResult(generatedReadme);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // --- UI Helper and Utility Functions ---
+        function resetUI() { errorMessage.classList.add('hidden'); resultsContainer.classList.add('hidden'); resultsContainer.classList.remove('fade-in'); readmeOutput.innerHTML = ''; clearInterval(typewriterInterval); feedbackSection.classList.add('hidden'); }
+        function setLoading(isLoading, message = '') {
+            generateBtn.disabled = isLoading;
+            if (isLoading) {
+                loader.classList.remove('hidden');
+                loader.classList.add('flex');
+                loadingMessage.textContent = message;
+            } else {
+                loader.classList.add('hidden');
+                loader.classList.remove('flex');
+            }
+        }
+        function showError(message) {
+            setLoading(false);
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+        function displayResult(readmeContent) {
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.classList.add('fade-in');
+            feedbackSection.classList.remove('hidden'); // [FIXED] Ensure feedback section is visible
+            let i = 0;
+            readmeOutput.innerHTML = '';
+            const cursor = document.createElement('span');
+            cursor.className = 'typewriter-cursor';
+            readmeOutput.appendChild(cursor);
+            typewriterInterval = setInterval(() => {
+                if (i < readmeContent.length) {
+                    cursor.insertAdjacentText('beforebegin', readmeContent.charAt(i));
+                    i++;
+                } else {
+                    clearInterval(typewriterInterval);
+                    cursor.style.display = 'none';
+                }
+            }, 5);
+        }
+        function parseGitHubUrl(url) { try { const urlObj = new URL(url); if (urlObj.hostname !== 'github.com') return null; const pathParts = urlObj.pathname.split('/').filter(part => part); if (pathParts.length >= 2) return { owner: pathParts[0], repo: pathParts[1] }; return null; } catch (error) { return null; } }
+        function copyToClipboard() { const tempTextArea = document.createElement('textarea'); tempTextArea.value = readmeOutput.textContent; document.body.appendChild(tempTextArea); tempTextArea.select(); try { document.execCommand('copy'); copyText.textContent = 'Copied!'; copyIcon.classList.add('hidden'); checkIcon.classList.remove('hidden'); setTimeout(() => { copyText.textContent = 'Copy'; copyIcon.classList.remove('hidden'); checkIcon.classList.add('hidden'); }, 2000); } catch (err) { console.error('Failed to copy text: ', err); copyText.textContent = 'Error!'; } document.body.removeChild(tempTextArea); }
+    </script>
+</body>
+</html>
