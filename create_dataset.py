@@ -3,41 +3,43 @@ import json
 import time
 import base64
 import os
+# [NEW] Import dotenv to read the .env file
+from dotenv import load_dotenv
+
+# [NEW] Load variables from .env file into the environment
+load_dotenv()
 
 # --- Configuration ---
-# IMPORTANT: Replace with your own GitHub Personal Access Token to avoid strict rate limits.
-# You can generate one here: https://github.com/settings/tokens
-GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', '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') 
+# [FIXED] Securely load the token from the environment (.env file)
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN') 
 LANGUAGES = ["JavaScript", "Python", "Java", "Go", "TypeScript"]
 MIN_STARS = 5000
-REPOS_PER_LANGUAGE = 20 # The number of repos to fetch for each language.
+REPOS_PER_LANGUAGE = 20
 OUTPUT_FILE = "readme_dataset.json"
 
 # --- Helper Functions ---
 
 def get_headers():
     """Returns the authorization headers for the GitHub API."""
-    if GITHUB_TOKEN != 'YOUR_GITHUB_TOKEN_HERE':
+    if GITHUB_TOKEN:
         return {"Authorization": f"token {GITHUB_TOKEN}"}
-    print("Warning: Running without a GitHub API token. You may hit rate limits quickly.")
+    print("Warning: GITHUB_TOKEN not found in .env file. You may hit rate limits quickly.")
     return {}
 
 def search_repositories(language, page):
     """Searches GitHub for repositories matching the criteria."""
     print(f"Searching for {language} repositories (Page {page})...")
-    # Construct the search query
     query = f"stars:>{MIN_STARS} language:{language} in:name,description,readme"
     url = f"https://api.github.com/search/repositories?q={query}&sort=stars&order=desc&per_page={REPOS_PER_LANGUAGE}&page={page}"
     
     try:
         response = requests.get(url, headers=get_headers())
-        response.raise_for_status() # Raises an exception for bad status codes (4xx or 5xx)
+        response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error searching repositories: {e}")
-        # Check for rate limit error
         if response.status_code == 403:
-            print("Rate limit likely exceeded. Please add a GitHub token or wait an hour.")
+            print("Rate limit likely exceeded. Please add a GITHUB_TOKEN to your .env file or wait an hour.")
         return None
 
 def get_file_content(repo_full_name, path):
@@ -47,7 +49,6 @@ def get_file_content(repo_full_name, path):
         response = requests.get(url, headers=get_headers())
         if response.status_code == 200:
             content_encoded = response.json().get('content', '')
-            # Decode the base64 encoded content
             return base64.b64decode(content_encoded).decode('utf-8', 'ignore')
         return None
     except requests.exceptions.RequestException:
@@ -86,13 +87,11 @@ def create_dataset():
             repo_full_name = repo['full_name']
             print(f"\n({i+1}/{len(repos)}) Processing repo: {repo_full_name}")
             
-            # 1. Get README content
             readme_content = get_file_content(repo_full_name, "README.md")
             if not readme_content:
                 print(f"  - Could not find or fetch README.md. Skipping repo.")
                 continue
 
-            # 2. Get key file contents
             repo_files = get_repo_contents(repo_full_name)
             key_filenames = ['package.json', 'requirements.txt', 'pom.xml', 'index.js', 'main.py', 'app.js']
             source_code_snippets = []
@@ -107,7 +106,6 @@ def create_dataset():
                             "content": content
                         })
             
-            # 3. Structure the data as per the plan
             repo_data = {
                 "repo_name": repo_full_name,
                 "language": repo.get('language'),
@@ -118,11 +116,8 @@ def create_dataset():
             }
             
             final_dataset.append(repo_data)
-            
-            # Respect rate limits by adding a small delay
             time.sleep(2) 
 
-    # 4. Save the final dataset to a JSON file
     print(f"\n--- Saving dataset with {len(final_dataset)} entries to {OUTPUT_FILE} ---")
     try:
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
