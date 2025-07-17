@@ -1,51 +1,30 @@
-// --- [NEW] Diagnostic Logging ---
-console.log("Step 1: Starting server.js script...");
-
-try {
-    require('dotenv').config();
-    console.log("Step 2: dotenv configured successfully.");
-} catch (e) {
-    console.error("🔴 FATAL ERROR loading dotenv:", e);
-    process.exit(1);
-}
+// Load environment variables from .env file
+require('dotenv').config();
 
 const express = require('express');
-console.log("Step 3: express module loaded.");
-
-// This is a likely point of failure. We need to see if this log appears.
 const fetch = require('node-fetch');
-console.log("Step 4: node-fetch module loaded.");
-
 const cors = require('cors');
-console.log("Step 5: cors module loaded.");
-
 const path = require('path');
-console.log("Step 6: path module loaded.");
-
 
 const app = express();
 const PORT = 3000;
 
 // --- Middleware ---
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-console.log("Step 7: Express middleware configured.");
+app.use(cors()); // Enable Cross-Origin Resource Sharing
+app.use(express.json()); // Enable parsing of JSON request bodies
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the 'public' directory
 
-
-// --- API Key Check ---
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
-if (!GOOGLE_API_KEY || GOOGLE_API_KEY === "YOUR_API_KEY_HERE") {
-    console.error("\n🔴 FATAL ERROR: Your Google AI API key is missing from the .env file!");
-    process.exit(1);
-} else {
-    console.log("Step 8: Successfully loaded Google AI API key.");
+if (!GOOGLE_API_KEY) {
+    console.error("FATAL ERROR: GOOGLE_API_KEY is not defined in your .env file.");
+    process.exit(1); // Exit the process if the key is missing
 }
-
 
 /**
  * A generic function to handle calls to the Gemini API.
+ * @param {string} prompt - The complete prompt to send to the AI.
+ * @returns {Promise<string>} The text response from the AI.
  */
 async function callGeminiAPI(prompt) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_API_KEY}`;
@@ -83,6 +62,8 @@ async function callGeminiAPI(prompt) {
 
 
 // --- API Endpoints ---
+
+// Endpoint for generating the main README file
 app.post('/api/generate-readme', async (req, res) => {
     try {
         const { repoData, examples, feedback } = req.body;
@@ -125,19 +106,28 @@ This project is licensed under the **${repoData.license || 'Not specified'}**.`;
             prompt = `The previous README was not good enough. You MUST improve it based on this user feedback: "${feedback}". You MUST follow the provided template structure. TEMPLATE: ${strictTemplate} ORIGINAL DATA: ${JSON.stringify(repoData, null, 2)} Output only the raw Markdown content.`;
         } else {
             const examplesString = examples.length > 0 ? `Here are some high-quality examples of READMEs for similar projects:\n\n` + examples.map((ex, i) => `--- EXAMPLE ${i + 1} ---\n${ex}`).join('\n\n') : "No relevant examples found.";
-            prompt = `You are an expert technical writer. Your task is to populate the provided Markdown template.
-            **Step 1: Analyze the Data.** Carefully review the provided JSON data, especially the 'description' and the code in 'code_analysis_files'.
-            **Step 2: Infer the Details.** From your analysis, determine the project's features, technology stack, setup commands, and suggest 2-3 innovative future features.
-            **Step 3: Populate the Template.** You MUST fill in every section of the following template using the details you inferred. Do not skip any sections.
+            prompt = `You are an expert technical writer. Your task is to follow a strict "Chain-of-Thought" process to generate a high-quality README.
+
+            **Step 1: Deep Analysis.**
+            Carefully review the provided JSON data, especially the 'description' and the code in 'code_analysis_files'. From this, you MUST infer the project's purpose, main technologies, features, and setup commands. For example, if you see 'particles.js' in the HTML, a technology is "Particles.js" and a feature is "Dynamic Animated Background". Be specific and do not use generic placeholders.
+            
+            **Step 2: Suggest Future Features.**
+            Based on your analysis, suggest 2-3 innovative and relevant features that could be added to this project.
+            
+            **Step 3: Populate the Template.**
+            You MUST fill in every section of the following template using the specific details you inferred in the previous steps. Do not skip any sections.
+
             ---
             **TEMPLATE TO POPULATE:**
             ---
             ${strictTemplate}
             ---
+
             **JSON DATA TO USE:**
             ---
             ${JSON.stringify(repoData, null, 2)}
             ---
+
             Now, generate the complete, populated README.md file. Output only the raw markdown.`;
         }
 
@@ -152,6 +142,5 @@ This project is licensed under the **${repoData.license || 'Not specified'}**.`;
 
 // --- Server Initialization ---
 app.listen(PORT, () => {
-    console.log(`\n✅ Server is running on http://localhost:${PORT}`);
-    console.log("You can now open this address in your web browser.");
+    console.log(`✅ Server is running on http://localhost:${PORT}`);
 });
