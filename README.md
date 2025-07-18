@@ -1,69 +1,65 @@
 n
 # ai-readme-generator
 
-> A tool that generates a basic README.md file based on repository data.
+> A backend server that leverages the Gemini API to automatically generate README files for GitHub repositories based on code analysis.
 
-[![License: Not specified](https://img.shields.io/badge/License-Not%20specified-yellow.svg)](https://choosealicense.com/licenses/)
+[![License: Not specified](https://img.shields.io/badge/License-Not%20specified-yellow.svg)](https://github.com/TheGodAnnihilator/ai-readme-generator)
 [![GitHub stars](https://img.shields.io/github/stars/TheGodAnnihilator/ai-readme-generator?style=social)](https://github.com/TheGodAnnihilator/ai-readme-generator)
 
-This project aims to automate the initial creation of a README.md file for GitHub repositories. It addresses the common problem of repositories lacking adequate documentation upon creation. The generator takes repository metadata as input and outputs a formatted README file, providing a foundation for further refinement. The target audience is developers who want a quick and easy way to generate a starter README file for their projects. It distinguishes itself by automating a normally manual and sometimes overlooked step in the project creation process.
+## Description
 
-## Live Demo
-
-A live demo is not available at this time.
-
-## Screenshot
-
-![Project Screenshot](https://placehold.co/800x450/0d1117/c9d1d9?text=Project+Visual)
+This project is a backend server designed to automate the creation of README files for GitHub repositories. It utilizes the Google Gemini API to analyze repository metadata and code, generating comprehensive and informative README content. The server exposes an API endpoint `/api/generate-readme` that accepts repository data and generates a README file in Markdown format. It addresses the problem of manually creating README files, saving developers time and effort. The core purpose is to provide an automated solution for documenting software projects.
 
 ## ✨ Key Features
 
-- **Automated README Generation:** Generates a basic README.md file from repository metadata.
-- **Template-Based Structure:** Provides a structured template for consistent README formatting.
-- **Easy to Use:** Simplifies the process of creating initial project documentation.
+- **README Generation via Gemini API:** Generates README content by sending repository information to the Gemini API and formatting the response in Markdown.
+- **Customizable README Template:** Uses a predefined template with sections for description, features, technology stack, getting started, contributing, and license, ensuring consistency.
+- **Feedback-Driven Refinement:** Allows users to provide feedback on generated READMEs, enabling iterative improvements via the Gemini API.
 
 ## 🛠️ Technology Stack
 
-- **Frontend:** HTML (based on `index.html` file)
-- **Backend:** Unknown (no backend code provided)
-- **Database:** None (no database interaction detected)
-- **DevOps:** None (no DevOps configuration files detected)
+- **Frontend:** None (Backend-only project, but likely intended to be consumed by a frontend application)
+- **Backend:** Node.js, Express, CORS, dotenv, node-fetch
+- **Database:** None
 
 ## 🚀 Getting Started
 
-Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
-
 ### Prerequisites
 
-You will need the following software installed on your system:
-- A web browser to view `index.html`.
+- Node.js v16+ (due to the use of `node-fetch` version 2.6.7)
+- npm (Node Package Manager)
+- Google Cloud Account with access to the Gemini API and an API Key
+- .env file with `GOOGLE_API_KEY` defined
 
 ### Installation
 
-1.  **Clone the repository:**
+1.  Clone the repository:
     ```sh
     git clone https://github.com/TheGodAnnihilator/ai-readme-generator
     ```
-2.  **Navigate to the project directory:**
+2.  Navigate to the project directory:
     ```sh
     cd ai-readme-generator
     ```
-
-### Environment Variables
-
-No specific environment variables were identified as required from the code analysis.
-
+3.  Install dependencies:
+    ```sh
+    npm install
+    ```
+                
 ### Running the Project
-
-Open `index.html` in your web browser.
 ```sh
-# No specific command, open index.html in your browser.
+npm start
 ```
+
+## 🔮 Future Features
+
+- **Integration with GitHub API:** Automatically fetch repository data directly from GitHub using the GitHub API.
+- **GUI for README Customization:** Develop a user interface to allow users to customize the README template and content before generation.
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/TheGodAnnihilator/ai-readme-generator/issues).
+Contributions are welcome! Please check the [issues page](https://github.com/TheGodAnnihilator/ai-readme-generator/issues) for ways to contribute.
 
 ## 📝 License
 
-This project is licensed under the **Not specified**. See the `LICENSE` file for more details.
+This project is licensed under the **Not specified**.
